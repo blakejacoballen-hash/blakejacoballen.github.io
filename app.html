@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guess the Movie | Blake Allen</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(to bottom right, #1c1c1c, #3a3a3a);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .app-container {
+            background-color: rgba(255, 255, 255, 0.08);
+            width: 90%;
+            max-width: 700px;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #ffd166;
+        }
+
+        .subtitle {
+            color: #dddddd;
+            margin-bottom: 25px;
+        }
+
+        .score-box {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #a8dadc;
+        }
+
+        .quote-box {
+            background-color: rgba(255, 255, 255, 0.12);
+            border-left: 5px solid #ffd166;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 22px;
+            font-style: italic;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .choices {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .choice-btn {
+            background-color: #457b9d;
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .choice-btn:hover {
+            background-color: #5c9fc7;
+            transform: translateY(-2px);
+        }
+
+        .choice-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.85;
+        }
+
+        .result {
+            min-height: 32px;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 18px;
+        }
+
+        .next-btn, .restart-btn, .back-btn {
+            background-color: #e76f51;
+            color: white;
+            border: none;
+            padding: 12px 22px;
+            font-size: 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 8px 6px 0 6px;
+            text-decoration: none;
+            display: inline-block;
+            transition: 0.2s ease;
+        }
+
+        .next-btn:hover, .restart-btn:hover, .back-btn:hover {
+            background-color: #f08a6b;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .correct {
+            background-color: #2a9d8f !important;
+        }
+
+        .incorrect {
+            background-color: #d62828 !important;
+        }
+
+        .final-box {
+            margin-top: 15px;
+            font-size: 20px;
+            color: #ffd166;
+        }
+
+        @media (max-width: 600px) {
+            .choices {
+                grid-template-columns: 1fr;
+            }
+
+            .quote-box {
+                font-size: 19px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <h1>Guess the Movie</h1>
+        <p class="subtitle">Read the quote and choose the correct movie.</p>
+
+        <div class="score-box">
+            Score: <span id="score">0</span> / <span id="question-number">1</span>
+        </div>
+
+        <div id="quiz-area">
+            <div class="quote-box" id="quote">Quote goes here</div>
+
+            <div class="choices" id="choices"></div>
+
+            <div class="result" id="result"></div>
+
+            <button class="next-btn hidden" id="next-btn">Next Question</button>
+        </div>
+
+        <div id="end-screen" class="hidden">
+            <h2>Quiz Complete!</h2>
+            <p class="final-box" id="final-score"></p>
+            <button class="restart-btn" id="restart-btn">Play Again</button>
+        </div>
+
+        <a class="back-btn" href="fromScratch.html">Back to Scratch Page</a>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                quote: "May the Force be with you.",
+                options: ["Star Wars", "The Matrix", "Avatar", "Dune"],
+                answer: "Star Wars"
+            },
+            {
+                quote: "Why so serious?",
+                options: ["Joker", "The Dark Knight", "Batman Begins", "Suicide Squad"],
+                answer: "The Dark Knight"
+            },
+            {
+                quote: "I'll be back.",
+                options: ["Predator", "Die Hard", "The Terminator", "RoboCop"],
+                answer: "The Terminator"
+            },
+            {
+                quote: "You can't handle the truth!",
+                options: ["Top Gun", "A Few Good Men", "The Firm", "Jerry Maguire"],
+                answer: "A Few Good Men"
+            },
+            {
+                quote: "Just keep swimming.",
+                options: ["Shark Tale", "Finding Nemo", "Moana", "Surf's Up"],
+                answer: "Finding Nemo"
+            },
+            {
+                quote: "I'm the king of the world!",
+                options: ["Titanic", "Gladiator", "The Perfect Storm", "Cast Away"],
+                answer: "Titanic"
+            },
+            {
+                quote: "Life is like a box of chocolates.",
+                options: ["The Green Mile", "Forrest Gump", "Big Fish", "Cast Away"],
+                answer: "Forrest Gump"
+            },
+            {
+                quote: "To infinity and beyond!",
+                options: ["Lightyear", "Toy Story", "Wall-E", "Cars"],
+                answer: "Toy Story"
+            }
+        ];
+
+        let shuffledQuestions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let answered = false;
+
+        const quoteEl = document.getElementById("quote");
+        const choicesEl = document.getElementById("choices");
+        const resultEl = document.getElementById("result");
+        const nextBtn = document.getElementById("next-btn");
+        const scoreEl = document.getElementById("score");
+        const questionNumberEl = document.getElementById("question-number");
+        const quizArea = document.getElementById("quiz-area");
+        const endScreen = document.getElementById("end-screen");
+        const finalScoreEl = document.getElementById("final-score");
+        const restartBtn = document.getElementById("restart-btn");
+
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function startQuiz() {
+            shuffledQuestions = shuffle(questions);
+            currentQuestionIndex = 0;
+            score = 0;
+            scoreEl.textContent = score;
+            quizArea.classList.remove("hidden");
+            endScreen.classList.add("hidden");
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            answered = false;
+            resultEl.textContent = "";
+            nextBtn.classList.add("hidden");
+            choicesEl.innerHTML = "";
+
+            const currentQuestion = shuffledQuestions[currentQuestionIndex];
+            quoteEl.textContent = `"${currentQuestion.quote}"`;
+            questionNumberEl.textContent = currentQuestionIndex + 1;
+
+            const shuffledOptions = shuffle(currentQuestion.options);
+
+            shuffledOptions.forEach(option => {
+                const button = document.createElement("button");
+                button.textContent = option;
+                button.classList.add("choice-btn");
+                button.addEventListener("click", () => selectAnswer(button, option, currentQuestion.answer));
+                choicesEl.appendChild(button);
+            });
+        }
+
+        function selectAnswer(button, selectedOption, correctAnswer) {
+            if (answered) return;
+            answered = true;
+
+            const allButtons = document.querySelectorAll(".choice-btn");
+
+            allButtons.forEach(btn => {
+                btn.disabled = true;
+                if (btn.textContent === correctAnswer) {
+                    btn.classList.add("correct");
+                }
+            });
+
+            if (selectedOption === correctAnswer) {
+                score++;
+                scoreEl.textContent = score;
+                resultEl.textContent = "Correct!";
+                resultEl.style.color = "#90e0ef";
+            } else {
+                button.classList.add("incorrect");
+                resultEl.textContent = `Incorrect. The correct answer was "${correctAnswer}".`;
+                resultEl.style.color = "#ffb4a2";
+            }
+
+            nextBtn.classList.remove("hidden");
+        }
+
+        nextBtn.addEventListener("click", () => {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < shuffledQuestions.length) {
+                loadQuestion();
+            } else {
+                showEndScreen();
+            }
+        });
+
+        function showEndScreen() {
+            quizArea.classList.add("hidden");
+            endScreen.classList.remove("hidden");
+            finalScoreEl.textContent = `You got ${score} out of ${shuffledQuestions.length} correct.`;
+        }
+
+        restartBtn.addEventListener("click", startQuiz);
+
+        startQuiz();
+    </script>
+</body>
+</html>
